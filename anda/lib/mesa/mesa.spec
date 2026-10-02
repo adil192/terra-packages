@@ -400,6 +400,14 @@ _EOF
 # ensure standard Rust compiler flags are set
 export RUSTFLAGS="%build_rustflags"
 
+%ifarch x86_64
+# Build for local CPU.
+%global _distro_extra_cflags %{?_distro_extra_cflags} -march=native -mtune=native
+export CFLAGS="%{optflags} -march=native -mtune=native"
+export CXXFLAGS="%{optflags} -march=native -mtune=native"
+export RUSTFLAGS="$RUSTFLAGS -C target-cpu=native"
+%endif
+
 %if 0%{?with_nvk}
 # So... Meson can't actually find them without tweaks
 %if !0%{?vendor_nvk_crates}
