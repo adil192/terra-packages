@@ -308,7 +308,7 @@ Provides:       libgbm-devel%{?_isa} = %{?epoch:%{epoch}:}%{version}-%{release}
 %package libOpenCL
 Summary:        Mesa OpenCL runtime library
 Requires:       (ocl-icd%{?_isa} or OpenCL-ICD-Loader%{?_isa})
-Requires:       libclc%{?_isa}
+Requires:       (libclc22%{?_isa} or (libclc%{?_isa} >= 22 with libclc%{?_isa} < 23))
 Requires:       %{name}-libgbm%{?_isa} = %{?epoch:%{epoch}:}%{version}-%{release}
 Requires:       opencl-filesystem
 
@@ -399,6 +399,14 @@ _EOF
 %build
 # ensure standard Rust compiler flags are set
 export RUSTFLAGS="%build_rustflags"
+
+%ifarch x86_64
+# Build for local CPU.
+%global _distro_extra_cflags %{?_distro_extra_cflags} -march=native -mtune=native
+export CFLAGS="%{optflags} -march=native -mtune=native"
+export CXXFLAGS="%{optflags} -march=native -mtune=native"
+export RUSTFLAGS="$RUSTFLAGS -C target-cpu=native"
+%endif
 
 %if 0%{?with_nvk}
 # So... Meson can't actually find them without tweaks

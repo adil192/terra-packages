@@ -7,6 +7,7 @@
 %global __cxx clang++-%{llvm_major}
 %endif
 # GLIBCXX_ASSERTIONS is known to break RPCS3
+%global _distro_extra_cflags %{?_distro_extra_cflags} -march=native -mtune=native
 %global build_cflags %(echo "%{__build_flags_lang_c}" | sed 's|-Wp,-D_GLIBCXX_ASSERTIONS ||g') %{?_distro_extra_cflags}
 %global build_cxxflags %(echo "%{__build_flags_lang_cxx}" | sed 's|-Wp,-D_GLIBCXX_ASSERTIONS ||g') %{?_distro_extra_cflags}
 %global commit 0be6d121404b245b2bf9a915e91f0086a0f0f588
@@ -20,6 +21,7 @@ License:        GPL-2.0-only
 URL:            https://github.com/RPCS3/rpcs3
 Source0:        %{url}/archive/%{commit}/%{name}-%{commit}.tar.gz
 BuildRequires:  anda-srpm-macros glew openal-soft cmake vulkan-validation-layers git-core mold
+BuildRequires:  ccache
 BuildRequires:  llvm%{?llvm_major}-devel
 # Looking at the CMakeLists.txt, this is the intended compiler and there are no fixes for GCC on aarch64
 BuildRequires:  clang%{?llvm_major}
@@ -29,7 +31,7 @@ BuildRequires:  cmake(OpenCV)
 BuildRequires:  cmake(Qt6Multimedia)
 BuildRequires:  cmake(Qt6Svg)
 BuildRequires:  pkgconfig(sdl3)
-BuildRequires:  pkgconfig(sndio)
+BuildRequires:  sndio-devel
 BuildRequires:  pkgconfig(jack)
 BuildRequires:  pkgconfig(x11)
 BuildRequires:  pkgconfig(glew)
@@ -75,7 +77,7 @@ export LLVM_DIR=%{_libdir}/llvm%{?llvm_major}/%{_lib}/cmake
     -DZSTD_BUILD_STATIC=ON                                    \
     -DCMAKE_SKIP_RPATH=ON                                     \
     -DBUILD_SHARED_LIBS:BOOL=OFF                              \
-    -DUSE_NATIVE_INSTRUCTIONS=OFF                             \
+    -DUSE_NATIVE_INSTRUCTIONS=ON                              \
     -DSTATIC_LINK_LLVM=OFF                                    \
     -DUSE_SYSTEM_FAUDIO=ON                                    \
     -DUSE_SDL=ON                                              \
@@ -92,7 +94,7 @@ export LLVM_DIR=%{_libdir}/llvm%{?llvm_major}/%{_lib}/cmake
     -DUSE_SYSTEM_WOLFSSL=OFF                                  \
     -DCMAKE_LINKER=mold                                       \
     -DCMAKE_SHARED_LINKER_FLAGS="$LDFLAGS -fuse-ld=mold"      \
-    -DCMAKE_EXE_LINKER_FLAGS="$LDFLAGS -fuse-ld=mold" 
+    -DCMAKE_EXE_LINKER_FLAGS="$LDFLAGS -fuse-ld=mold"
 
 %build
 %cmake_build
