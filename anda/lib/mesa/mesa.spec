@@ -5,18 +5,18 @@
 %ifnarch s390x
 %global with_hardware 1
 %global with_kmsro 1
-%global with_radeonsi 1
+#global with_radeonsi  0
 %global with_spirv_tools 1
-%global with_vmware 1
+#global with_vmware    0
 %global with_vulkan_hw 1
 %if !0%{?rhel}
-%global with_r300 1
-%global with_r600 1
-%global with_opencl 1
-%global with_va 1
+#global with_r300      0
+#global with_r600      0
+#global with_opencl 0
+#global with_va 0
 %endif
 %if !0%{?rhel} || 0%{?rhel} >= 9            
-%global with_nvk %{with_vulkan_hw}            
+#global with_nvk       0
 %endif
 %global base_vulkan %{?with_vulkan_hw:,amd}%{!?with_vulkan_hw:%{nil}}
 %endif
@@ -28,11 +28,11 @@
 %endif
 
 %ifarch %{ix86} x86_64
-%global with_crocus 1
+#global with_crocus    0
 %global with_iris   1
 %global intel_platform_vulkan %{?with_vulkan_hw:,intel,intel_hasvk}%{!?with_vulkan_hw:%{nil}}
 %if !0%{?rhel}
-%global with_i915   1
+#global with_i915      0
 %endif
 %endif
 %ifarch x86_64
@@ -43,16 +43,16 @@
 
 %ifarch aarch64 x86_64 %{ix86}
 %if !0%{?rhel}
-%global with_asahi     1
-%global with_d3d12     1
-%global with_etnaviv   1
-%global with_lima      1
-%global with_tegra     1
-%global with_vc4       1
-%global with_v3d       1
+#global with_asahi     0
+#global with_d3d12     0
+#global with_etnaviv   0
+#global with_lima      0
+#global with_tegra     0
+#global with_vc4       0
+#global with_v3d       0
 %endif
-%global with_freedreno 1
-%global with_panfrost  1
+#global with_freedreno 0
+#global with_panfrost  0
 %if 0%{?with_asahi}
 %global asahi_platform_vulkan %{?with_vulkan_hw:,asahi}%{!?with_vulkan_hw:%{nil}}
 %endif
@@ -60,10 +60,10 @@
 %endif
 
 %if !0%{?rhel}
-%global with_gfxstream 1
+#global with_gfxstream 0
 %global with_libunwind 1
 %global with_lmsensors 1
-%global with_virtio    1
+#global with_virtio    0
 %endif
 
 %ifarch %{valgrind_arches}
@@ -72,7 +72,8 @@
 %bcond_with valgrind
 %endif
 
-%global vulkan_drivers swrast%{?base_vulkan}%{?intel_platform_vulkan}%{?asahi_platform_vulkan}%{?extra_platform_vulkan}%{?with_nvk:,nouveau}%{?with_virtio:,virtio}%{?with_gfxstream:,gfxstream}%{?with_d3d12:,microsoft-experimental}
+%global vulkan_drivers swrast%{?base_vulkan}%{?intel_platform_vulkan}%{?extra_platform_vulkan}
+%global vulkan_drivers swrast%{?intel_platform_vulkan}
 
 %if 0%{?with_nvk} && 0%{?rhel}
 %global vendor_nvk_crates 1
@@ -88,7 +89,7 @@ Summary:        Mesa graphics libraries
 %global ver 26.3.1
 Epoch:          1
 Version:        %{lua:ver = string.gsub(rpm.expand("%{ver}"), "-", "~"); print(ver)}
-Release:        2%{?dist}
+Release:        9%{?dist}
 Packager:       Kyle Gospodnetich <me@kylegospodneti.ch>
 License:        MIT AND BSD-3-Clause AND SGI-B-2.0
 URL:            https://mesa3d.org
@@ -182,7 +183,7 @@ BuildRequires:  flatbuffers-devel
 BuildRequires:  flatbuffers-compiler
 BuildRequires:  xtensor-devel
 %endif
-%if 0%{?with_opencl} || 0%{?with_nvk} || 0%{?with_asahi} || 0%{?with_panfrost}
+%if 1 || 0%{?with_opencl} || 0%{?with_nvk} || 0%{?with_asahi} || 0%{?with_panfrost}
 BuildRequires:  clang-devel
 BuildRequires:  pkgconfig(SPIRV-Tools)
 BuildRequires:  pkgconfig(LLVMSPIRVLib)
@@ -408,6 +409,14 @@ _EOF
 # ensure standard Rust compiler flags are set
 export RUSTFLAGS="%build_rustflags"
 
+%ifarch x86_64
+# Build for local CPU.
+%global _distro_extra_cflags %{?_distro_extra_cflags} -march=native -mtune=native
+export CFLAGS="%{optflags} -march=native -mtune=native"
+export CXXFLAGS="%{optflags} -march=native -mtune=native"
+export RUSTFLAGS="$RUSTFLAGS -C target-cpu=native"
+%endif
+
 %if 0%{?with_nvk}
 # So... Meson can't actually find them without tweaks
 %if !0%{?vendor_nvk_crates}
@@ -447,9 +456,9 @@ rewrite_wrap_file rustc-hash
 %meson \
   -Dplatforms=x11,wayland \
 %if 0%{?with_hardware}
-  -Dgallium-drivers=llvmpipe,virgl,nouveau%{?with_r300:,r300}%{?with_crocus:,crocus}%{?with_i915:,i915}%{?with_iris:,iris}%{?with_vmware:,svga}%{?with_radeonsi:,radeonsi}%{?with_r600:,r600}%{?with_asahi:,asahi}%{?with_freedreno:,freedreno}%{?with_etnaviv:,etnaviv}%{?with_tegra:,tegra}%{?with_vc4:,vc4}%{?with_v3d:,v3d}%{?with_lima:,lima}%{?with_panfrost:,panfrost}%{?with_vulkan_hw:,zink}%{?with_d3d12:,d3d12}%{?with_teflon:,ethosu,rocket} \
+  -Dgallium-drivers=llvmpipe%{?with_iris:,iris}%{?with_vulkan_hw:,zink}%{?with_teflon:,ethosu,rocket} \
 %else
-  -Dgallium-drivers=llvmpipe,virgl \
+  -Dgallium-drivers=llvmpipe \
 %endif
   -Dgallium-va=%{?with_va:enabled}%{!?with_va:disabled} \
   -Dgallium-mediafoundation=disabled \
@@ -468,7 +477,7 @@ rewrite_wrap_file rustc-hash
   -Dglvnd=enabled \
   -Dvideo-codecs=all \
   -Dintel-rt=%{?with_intel_vk_rt:enabled}%{!?with_intel_vk_rt:disabled} \
-  -Damdgpu-virtio=true \
+  -Damdgpu-virtio=false \
   -Dmicrosoft-clc=disabled \
   -Dllvm=enabled \
   -Dshared-llvm=enabled \
@@ -567,8 +576,8 @@ ln -s libGLX_mesa.so.0 %{buildroot}%{_libdir}/libGLX_system.so.0
 %{_libdir}/dri/kms_swrast_dri.so
 %{_libdir}/dri/libdril_dri.so
 %{_libdir}/dri/swrast_dri.so
-%{_libdir}/dri/virtio_gpu_dri.so
-%{_datadir}/drirc.d/00-virtio_gpu-defaults.conf
+#{_libdir}/dri/virtio_gpu_dri.so
+#{_datadir}/drirc.d/00-virtio_gpu-defaults.conf
 
 %if 0%{?with_hardware}
 %if 0%{?with_r300}
@@ -584,8 +593,8 @@ ln -s libGLX_mesa.so.0 %{buildroot}%{_libdir}/libGLX_system.so.0
 %{_datadir}/drirc.d/00-radeonsi-defaults.conf
 %endif
 %ifarch %{ix86} x86_64
-%{_libdir}/dri/crocus_dri.so
-%{_datadir}/drirc.d/00-crocus-defaults.conf
+#{_libdir}/dri/crocus_dri.so
+#{_datadir}/drirc.d/00-crocus-defaults.conf
 %{_libdir}/dri/iris_dri.so
 %{_datadir}/drirc.d/00-iris-defaults.conf
 %if 0%{?with_i915}
@@ -639,7 +648,7 @@ ln -s libGLX_mesa.so.0 %{buildroot}%{_libdir}/libGLX_system.so.0
 %{_libdir}/dri/panthor_dri.so
 %{_datadir}/drirc.d/00-panfrost-defaults.conf
 %endif
-%{_libdir}/dri/nouveau_dri.so
+#{_libdir}/dri/nouveau_dri.so
 %if 0%{?with_vmware}
 %{_libdir}/dri/vmwgfx_dri.so
 %{_datadir}/drirc.d/00-vmwgfx-defaults.conf
@@ -720,10 +729,10 @@ ln -s libGLX_mesa.so.0 %{buildroot}%{_libdir}/libGLX_system.so.0
 %{_datadir}/vulkan/icd.d/gfxstream_vk_icd.*.json
 %endif
 %if 0%{?with_vulkan_hw}
-%{_libdir}/libvulkan_radeon.so
-%{_datadir}/drirc.d/00-radv-defaults.conf
-%{_datadir}/drirc.d/01-radv-performance.conf
-%{_datadir}/vulkan/icd.d/radeon_icd.*.json
+#{_libdir}/libvulkan_radeon.so
+#{_datadir}/drirc.d/00-radv-defaults.conf
+#{_datadir}/drirc.d/01-radv-performance.conf
+#{_datadir}/vulkan/icd.d/radeon_icd.*.json
 %if 0%{?with_nvk}
 %{_libdir}/libvulkan_nouveau.so
 %{_datadir}/vulkan/icd.d/nouveau_icd.*.json
@@ -748,18 +757,18 @@ ln -s libGLX_mesa.so.0 %{buildroot}%{_libdir}/libGLX_system.so.0
 %{_datadir}/vulkan/icd.d/asahi_icd.*.json
 %{_datadir}/drirc.d/00-hk-defaults.conf
 %endif
-%{_libdir}/libvulkan_broadcom.so
-%{_datadir}/vulkan/icd.d/broadcom_icd.*.json
-%{_datadir}/drirc.d/00-v3dv-defaults.conf
-%{_libdir}/libvulkan_freedreno.so
-%{_datadir}/vulkan/icd.d/freedreno_icd.*.json
-%{_datadir}/drirc.d/00-turnip-defaults.conf
-%{_libdir}/libvulkan_panfrost.so
-%{_datadir}/vulkan/icd.d/panfrost_icd.*.json
-%{_datadir}/drirc.d/00-panvk-defaults.conf
-%{_libdir}/libvulkan_powervr_mesa.so
-%{_datadir}/vulkan/icd.d/powervr_mesa_icd.*.json
-%{_datadir}/drirc.d/00-pvr-defaults.conf
+#{_libdir}/libvulkan_broadcom.so
+#{_datadir}/vulkan/icd.d/broadcom_icd.*.json
+#{_datadir}/drirc.d/00-v3dv-defaults.conf
+#{_libdir}/libvulkan_freedreno.so
+#{_datadir}/vulkan/icd.d/freedreno_icd.*.json
+#{_datadir}/drirc.d/00-turnip-defaults.conf
+#{_libdir}/libvulkan_panfrost.so
+#{_datadir}/vulkan/icd.d/panfrost_icd.*.json
+#{_datadir}/drirc.d/00-panvk-defaults.conf
+#{_libdir}/libvulkan_powervr_mesa.so
+#{_datadir}/vulkan/icd.d/powervr_mesa_icd.*.json
+#{_datadir}/drirc.d/00-pvr-defaults.conf
 %endif
 %endif
 
