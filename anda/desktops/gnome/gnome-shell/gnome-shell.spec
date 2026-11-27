@@ -1,0 +1,1 @@
+../../../../extern/gnome-shell/gnome-shell.spec

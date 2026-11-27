@@ -1,0 +1,1 @@
+../../../extern/gtk4/gtk4.spec
